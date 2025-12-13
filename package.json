@@ -1,0 +1,56 @@
+{
+  "name": "authflowy",
+  "version": "0.0.1",
+  "private": false,
+  "description": "A type-safe, minimal, opinionated OAuth library with plugin-based providers for JavaScript and TypeScript.",
+  "license": "MIT",
+  "type": "module",
+  "types": "./dist/index.d.cts",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "exports": {
+    ".": {
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.mjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "bun run --watch example/server.ts",
+    "build": "tsdown",
+    "test": "bun test",
+    "format:write": "prettier --write .",
+    "format:check": "prettier --check .",
+    "release": "bumpp"
+  },
+  "author": "Arik Chakma <arikchakma@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/arikchakma/authflowy"
+  },
+  "homepage": "https://github.com/arikchakma/authflowy",
+  "bugs": "https://github.com/arikchakma/authflowy/issues",
+  "keywords": [
+    "auth",
+    "oauth",
+    "google",
+    "github",
+    "typescript"
+  ],
+  "devDependencies": {
+    "@types/bun": "latest",
+    "bumpp": "^10.3.2",
+    "prettier": "^3.7.4",
+    "prettier-plugin-organize-imports": "^4.3.0",
+    "tsdown": "^0.17.3"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "oauth4webapi": "^3.8.3"
+  }
+}
