@@ -1,7 +1,7 @@
 import * as oauth from 'oauth4webapi';
-import { AuthFlowyError } from './error';
-import type { OAuthProvider, OAuthProviderConfig } from './provider';
-import { getAuthorizationServer } from './utils';
+import { AuthFlowyError } from '../error';
+import type { OAuthProvider, OAuthProviderConfig } from '../provider';
+import { getAuthorizationServer } from '../utils';
 
 type LinkedInUserProfile = {
   sub: string;

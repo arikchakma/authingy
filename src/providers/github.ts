@@ -1,6 +1,6 @@
 import * as oauth from 'oauth4webapi';
-import { AuthFlowyError } from './error';
-import type { OAuthProvider, OAuthProviderConfig } from './provider';
+import { AuthFlowyError } from '../error';
+import type { OAuthProvider, OAuthProviderConfig } from '../provider';
 
 const GITHUB_API_VERSION = '2022-11-28';
 
