@@ -7,16 +7,17 @@ on:
 
 permissions:
   id-token: write
-  contents: read
+  contents: write
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
         with:
-          registry-url: 'https://registry.npmjs.org'
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
 
       - name: Install
         run: bun ci
@@ -34,4 +35,4 @@ jobs:
         run: bun run test
 
       - name: Publish to NPM
-        run: bunx npm publish --provenance --access public
+        run: bunx pnpm -r publish --access public --no-git-checks
