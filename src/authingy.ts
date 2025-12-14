@@ -24,16 +24,21 @@ export type CallbackResult<U extends BaseUser = BaseUser> = {
 export type Identifier<T extends readonly OAuthProvider<any>[]> =
   T[number]['id'];
 
+type UserForProvider<
+  T extends readonly OAuthProvider<any>[],
+  ID extends Identifier<T>,
+> = Extract<T[number], { id: ID }> extends OAuthProvider<infer U> ? U : never;
+
 export type AuthingyReturn<T extends readonly OAuthProvider<any>[]> = {
   '~providers': T;
   authorize: (
     id: Identifier<T>,
     data?: Record<string, unknown>
   ) => Promise<AuthorizeResult>;
-  callback: (
-    id: Identifier<T>,
+  callback: <ID extends Identifier<T>>(
+    id: ID,
     options: CallbackOptions
-  ) => Promise<CallbackResult<Awaited<ReturnType<T[number]['_user']>>>>;
+  ) => Promise<CallbackResult<UserForProvider<T, ID>>>;
 };
 
 export type AuthingyConfig<T extends readonly OAuthProvider<any>[]> = {
