@@ -1,8 +1,8 @@
 export * as oauth from 'oauth4webapi';
-export * from './authflowy';
+export * from './authingy';
 export * from './crypto';
 export * from './error';
-export * from './github';
-export * from './google';
-export * from './linkedin';
 export * from './provider';
+export * from './providers/github';
+export * from './providers/google';
+export * from './providers/linkedin';

@@ -1,7 +1,7 @@
 import * as oauth from 'oauth4webapi';
-import { AuthFlowyError } from './error';
-import type { OAuthProvider, OAuthProviderConfig } from './provider';
-import { getAuthorizationServer } from './utils';
+import { AuthingyError } from '../error';
+import type { OAuthProvider, OAuthProviderConfig } from '../provider';
+import { getAuthorizationServer } from '../utils';
 
 type LinkedInUserProfile = {
   sub: string;
@@ -59,12 +59,12 @@ export function linkedin(config: OAuthProviderConfig) {
       const { codeVerifier, state } = options;
 
       if (!codeVerifier) {
-        throw new AuthFlowyError('codeVerifier is required');
+        throw new AuthingyError('codeVerifier is required');
       }
 
       as = await authorizationServer();
       if (!as.authorization_endpoint) {
-        throw new AuthFlowyError('Authorization endpoint not found');
+        throw new AuthingyError('Authorization endpoint not found');
       }
 
       const code_challenge =

@@ -1,7 +1,7 @@
 import { defineConfig } from 'tsdown';
 
 export default defineConfig({
-  name: 'authflowy',
+  name: 'authingy',
   entry: 'src/index.ts',
   outDir: 'dist',
   format: ['esm', 'cjs'],

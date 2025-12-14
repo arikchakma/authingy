@@ -1,17 +1,17 @@
 <div align="center">
-  <h2>🔐 AuthFlowy</h2>
+  <h2>🔐 Authingy</h2>
   <p>A type-safe, minimal, opinionated OAuth library with plugin-based providers for JavaScript and TypeScript.</p>
-  <a href="https://npmjs.com/package/authflowy"><strong>npm</strong></a>
+  <a href="https://npmjs.com/package/authingy"><strong>npm</strong></a>
 </div>
 
 ### What Does It Do?
 
-**AuthFlowy** (pronounced "auth flow-y") simplifies OAuth 2.0 authentication with a clean, type-safe API. It supports multiple providers out of the box.
+**Authingy** (pronounced "auth-ing-y") simplifies OAuth 2.0 authentication with a clean, type-safe API. It supports multiple providers out of the box.
 
 ```ts
-import { defineAuthFlowyConfig, google, github } from 'authflowy';
+import { defineAuthingyConfig, google, github } from 'authingy';
 
-const auth = defineAuthFlowyConfig({
+const auth = defineAuthingyConfig({
   secret: process.env.AUTH_SECRET,
   providers: [
     google({
@@ -54,13 +54,13 @@ console.log(user);
 
 ```bash
 # npm
-npm install authflowy
+npm install authingy
 
 # pnpm
-pnpm add authflowy
+pnpm add authingy
 
 # bun
-bun add authflowy
+bun add authingy
 ```
 
 ### Acknowledgements
