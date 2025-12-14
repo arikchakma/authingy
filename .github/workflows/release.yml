@@ -12,12 +12,23 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
           fetch-depth: 0
-      - uses: oven-sh/setup-bun@v2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Update npm
+        run: npm install -g npm@latest
 
       - name: Install
         run: bun ci
@@ -35,4 +46,4 @@ jobs:
         run: bun run test
 
       - name: Publish to NPM
-        run: bunx pnpm -r publish --access public --no-git-checks
+        run: npm publish --access public
