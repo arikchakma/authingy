@@ -1,9 +1,9 @@
-export class AuthFlowyError extends Error {
+export class AuthingyError extends Error {
   public readonly details?: Record<string, unknown>;
 
   constructor(message: string, details?: Record<string, unknown>) {
     super(message);
-    this.name = 'AuthFlowError';
+    this.name = 'AuthingyError';
     this.details = details;
   }
 }

@@ -1,5 +1,5 @@
 import * as oauth from 'oauth4webapi';
-import { AuthFlowyError } from '../error';
+import { AuthingyError } from '../error';
 import type { OAuthProvider, OAuthProviderConfig } from '../provider';
 
 const GITHUB_API_VERSION = '2022-11-28';
@@ -114,7 +114,7 @@ export function github(config: GitHubProviderConfig) {
       const { codeVerifier, state } = options;
 
       if (!codeVerifier) {
-        throw new AuthFlowyError('codeVerifier is required');
+        throw new AuthingyError('codeVerifier is required');
       }
 
       const code_challenge =
@@ -171,7 +171,7 @@ export function github(config: GitHubProviderConfig) {
       });
 
       if (!userResponse.ok) {
-        throw new AuthFlowyError('Failed to fetch GitHub user profile', {
+        throw new AuthingyError('Failed to fetch GitHub user profile', {
           status: userResponse.status,
           statusText: userResponse.statusText,
         });

@@ -1,5 +1,5 @@
 {
-  "name": "authflowy",
+  "name": "authingy",
   "version": "0.0.1",
   "private": false,
   "description": "A type-safe, minimal, opinionated OAuth library with plugin-based providers for JavaScript and TypeScript.",
@@ -29,10 +29,10 @@
   "author": "Arik Chakma <arikchakma@gmail.com>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/arikchakma/authflowy"
+    "url": "https://github.com/arikchakma/authingy"
   },
-  "homepage": "https://github.com/arikchakma/authflowy",
-  "bugs": "https://github.com/arikchakma/authflowy/issues",
+  "homepage": "https://github.com/arikchakma/authingy",
+  "bugs": "https://github.com/arikchakma/authingy/issues",
   "keywords": [
     "auth",
     "oauth",

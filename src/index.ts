@@ -1,5 +1,5 @@
 export * as oauth from 'oauth4webapi';
-export * from './authflowy';
+export * from './authingy';
 export * from './crypto';
 export * from './error';
 export * from './provider';

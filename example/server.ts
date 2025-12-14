@@ -1,8 +1,9 @@
-import { defineAuthFlowConfig, github, google, type Identifier } from '../src';
+import type { Identifier } from '../src';
+import { defineAuthingyConfig, github, google } from '../src';
 
 const PORT = 5173;
 
-const auth = defineAuthFlowConfig({
+const auth = defineAuthingyConfig({
   secret: Bun.env.AUTH_SECRET_KEY!,
   providers: [
     google({
