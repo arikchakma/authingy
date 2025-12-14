@@ -6,3 +6,4 @@ export * from './provider';
 export * from './providers/github';
 export * from './providers/google';
 export * from './providers/linkedin';
+export * from './utils';

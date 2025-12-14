@@ -19,8 +19,8 @@ const auth = defineAuthingyConfig({
   ],
 });
 
-const COOKIE_NAME_STATE = '_simple_auth_state_';
-const COOKIE_NAME_CODE_VERIFIER = '_simple_auth_code_verifier_';
+const COOKIE_NAME_STATE = '_authingy_state_';
+const COOKIE_NAME_CODE_VERIFIER = '_authingy_code_verifier_';
 const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: Bun.env.NODE_ENV === 'production',

@@ -1,7 +1,7 @@
 import * as oauth from 'oauth4webapi';
 import { AuthingyError } from '../error';
 import type { OAuthProvider, OAuthProviderConfig } from '../provider';
-import { getAuthorizationServer } from '../utils';
+import { buildAuthorizationUrl, getAuthorizationServer } from '../utils';
 
 type GoogleUserProfile = {
   aud: string;
@@ -89,22 +89,19 @@ export function google(config: OAuthProviderConfig) {
         throw new AuthingyError('Authorization endpoint not found');
       }
 
-      const code_challenge =
-        await oauth.calculatePKCECodeChallenge(codeVerifier);
-
-      const authorizationUrl = new URL(as.authorization_endpoint);
-      authorizationUrl.searchParams.set('client_id', client.client_id);
-      authorizationUrl.searchParams.set('redirect_uri', redirectUri);
-      authorizationUrl.searchParams.set('response_type', 'code');
-      authorizationUrl.searchParams.set('scope', scopes.join(' '));
-      authorizationUrl.searchParams.set('code_challenge', code_challenge);
-      authorizationUrl.searchParams.set('code_challenge_method', 'S256');
-      authorizationUrl.searchParams.set('access_type', 'offline');
-      authorizationUrl.searchParams.set('prompt', 'consent');
-      authorizationUrl.searchParams.set('state', state);
-      authorizationUrl.searchParams.set('include_granted_scopes', 'true');
-
-      return authorizationUrl.href;
+      return buildAuthorizationUrl({
+        authorizationEndpoint: as.authorization_endpoint,
+        clientId: client.client_id,
+        redirectUri,
+        scopes,
+        codeVerifier,
+        state,
+        extraParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+          include_granted_scopes: 'true',
+        },
+      });
     },
     _callback: async (options) => {
       const { url, codeVerifier, state } = options;

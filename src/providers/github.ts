@@ -1,6 +1,7 @@
 import * as oauth from 'oauth4webapi';
 import { AuthingyError } from '../error';
 import type { OAuthProvider, OAuthProviderConfig } from '../provider';
+import { buildAuthorizationUrl } from '../utils';
 
 const GITHUB_API_VERSION = '2022-11-28';
 
@@ -117,19 +118,14 @@ export function github(config: GitHubProviderConfig) {
         throw new AuthingyError('codeVerifier is required');
       }
 
-      const code_challenge =
-        await oauth.calculatePKCECodeChallenge(codeVerifier);
-
-      const authorizationUrl = new URL(as.authorization_endpoint!);
-      authorizationUrl.searchParams.set('client_id', client.client_id);
-      authorizationUrl.searchParams.set('redirect_uri', redirectUri);
-      authorizationUrl.searchParams.set('response_type', 'code');
-      authorizationUrl.searchParams.set('scope', scopes.join(' '));
-      authorizationUrl.searchParams.set('code_challenge', code_challenge);
-      authorizationUrl.searchParams.set('code_challenge_method', 'S256');
-      authorizationUrl.searchParams.set('state', state);
-
-      return authorizationUrl.href;
+      return buildAuthorizationUrl({
+        authorizationEndpoint: as.authorization_endpoint!,
+        clientId: client.client_id,
+        redirectUri,
+        scopes,
+        codeVerifier,
+        state,
+      });
     },
     _callback: async (options) => {
       const { url, codeVerifier, state } = options;
