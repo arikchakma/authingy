@@ -3,7 +3,7 @@ import { AuthingyError } from '../error';
 import type { OAuthProvider, OAuthProviderConfig } from '../provider';
 import { buildAuthorizationUrl, getAuthorizationServer } from '../utils';
 
-type GoogleUserProfile = {
+export type GoogleUserProfile = {
   aud: string;
   azp: string;
   email: string;

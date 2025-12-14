@@ -25,7 +25,6 @@ const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: Bun.env.NODE_ENV === 'production',
   sameSite: 'lax',
-  maxAge: 60 * 10, // 10 minutes
 } as const;
 
 const server = Bun.serve({
@@ -38,9 +37,17 @@ const server = Bun.serve({
       const { url, state, codeVerifier } = await auth.authorize(provider, {
         some_random_data: 'some_random_data',
       });
+
       const cookies = req.cookies;
-      cookies.set(COOKIE_NAME_STATE, state, COOKIE_OPTIONS);
-      cookies.set(COOKIE_NAME_CODE_VERIFIER, codeVerifier, COOKIE_OPTIONS);
+      const expires = new Date(Date.now() + 60 * 1000 * 10); // 10 minutes
+      cookies.set(COOKIE_NAME_STATE, state, {
+        ...COOKIE_OPTIONS,
+        expires,
+      });
+      cookies.set(COOKIE_NAME_CODE_VERIFIER, codeVerifier, {
+        ...COOKIE_OPTIONS,
+        expires,
+      });
 
       return Response.redirect(url, 302);
     },

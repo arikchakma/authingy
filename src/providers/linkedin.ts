@@ -3,7 +3,7 @@ import { AuthingyError } from '../error';
 import type { OAuthProvider, OAuthProviderConfig } from '../provider';
 import { buildAuthorizationUrl, getAuthorizationServer } from '../utils';
 
-type LinkedInUserProfile = {
+export type LinkedInUserProfile = {
   sub: string;
   name: string;
   given_name: string;
@@ -13,8 +13,6 @@ type LinkedInUserProfile = {
   email: string;
   email_verified: boolean;
 };
-
-export type LinkedInUser = LinkedInUserProfile;
 
 /**
  * LinkedIn OAuth provider
@@ -120,5 +118,5 @@ export function linkedin(config: OAuthProviderConfig) {
 
       return userResult as LinkedInUserProfile;
     },
-  } satisfies OAuthProvider<LinkedInUser>;
+  } satisfies OAuthProvider<LinkedInUserProfile>;
 }

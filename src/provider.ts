@@ -2,18 +2,18 @@ import type { TokenEndpointResponse } from 'oauth4webapi';
 
 export type BaseUser = Record<string, unknown>;
 
-type AuthorizationUrlOptions = {
+export type ProviderAuthorizationOptions = {
   state: string;
   codeVerifier: string;
 };
 
-type CallbackOptions = {
+export type ProviderCallbackOptions = {
   url: URL;
   codeVerifier: string;
   state: string;
 };
 
-type UserOptions = {
+export type ProviderUserOptions = {
   token: TokenEndpointResponse;
 };
 
@@ -21,9 +21,11 @@ export type LiteralString = '' | (string & Record<never, never>);
 
 export type OAuthProvider<TUser extends BaseUser = BaseUser> = {
   readonly id: LiteralString;
-  _authorization: (options: AuthorizationUrlOptions) => Promise<string>;
-  _callback: (options: CallbackOptions) => Promise<TokenEndpointResponse>;
-  _user: (options: UserOptions) => Promise<TUser>;
+  _authorization: (options: ProviderAuthorizationOptions) => Promise<string>;
+  _callback: (
+    options: ProviderCallbackOptions
+  ) => Promise<TokenEndpointResponse>;
+  _user: (options: ProviderUserOptions) => Promise<TUser>;
 };
 
 export type OAuthProviderConfig = {

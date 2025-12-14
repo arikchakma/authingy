@@ -9,7 +9,7 @@ const GITHUB_API_VERSION = '2022-11-28';
  * GitHub user profile returned from the GitHub API
  * @see https://docs.github.com/en/rest/users/users#get-the-authenticated-user
  */
-type GitHubUserProfile = {
+type GitHubUser = {
   id: number;
   /** The username/handle */
   login: string;
@@ -46,7 +46,7 @@ type GitHubEmail = {
 /**
  * Extended GitHub user profile that includes verified email
  */
-export type GitHubUser = GitHubUserProfile & {
+export type GitHubUserProfile = GitHubUser & {
   /**
    * The user's primary verified email address
    * This is fetched separately when `user:email` scope is granted
@@ -175,7 +175,7 @@ export function github(config: GitHubProviderConfig) {
 
       const userProfile = (await userResponse.json()) as GitHubUserProfile;
 
-      const result: GitHubUser = { ...userProfile };
+      const result: GitHubUserProfile = { ...userProfile };
 
       // If user:email scope is granted, fetch email addresses
       // This is necessary because the user profile may not include email
@@ -209,5 +209,5 @@ export function github(config: GitHubProviderConfig) {
 
       return result;
     },
-  } satisfies OAuthProvider<GitHubUser>;
+  } satisfies OAuthProvider<GitHubUserProfile>;
 }

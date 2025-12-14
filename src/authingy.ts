@@ -46,6 +46,21 @@ export type AuthingyConfig<T extends readonly OAuthProvider<any>[]> = {
   providers: T;
 };
 
+/**
+ * Defines an Authingy configuration with a secret and a list of providers
+ *
+ * @example
+ * ```ts
+ * const auth = defineAuthingyConfig({
+ *   secret: 'my-secret',
+ *   providers: [
+ *     google({...}),
+ *     github({...}),
+ *     linkedin({...}),
+ *   ],
+ * });
+ * ```
+ */
 export function defineAuthingyConfig<
   const T extends readonly OAuthProvider<any>[],
 >(config: AuthingyConfig<T>): AuthingyReturn<T> {
