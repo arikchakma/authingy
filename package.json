@@ -1,6 +1,6 @@
 {
   "name": "authingy",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": false,
   "description": "A type-safe, minimal, opinionated OAuth library with plugin-based providers for JavaScript and TypeScript.",
   "license": "MIT",
