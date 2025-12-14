@@ -52,5 +52,8 @@
   },
   "dependencies": {
     "oauth4webapi": "^3.8.3"
+  },
+  "publishConfig": {
+    "provenance": false
   }
 }
