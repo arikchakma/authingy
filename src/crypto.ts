@@ -8,7 +8,7 @@ function keyToBuffer(key: string) {
   return crypto.createHash('sha256').update(key).digest();
 }
 
-export async function encrypt(key: string, data: Record<string, unknown>) {
+export function encrypt(key: string, data: Record<string, unknown>) {
   const keyBuffer = keyToBuffer(key);
 
   const plainText = JSON.stringify(data);
@@ -23,10 +23,10 @@ export async function encrypt(key: string, data: Record<string, unknown>) {
   return iv.toString('hex') + encrypted + tag.toString('hex');
 }
 
-export async function decrypt<T = Record<string, unknown>>(
+export function decrypt<T = Record<string, unknown>>(
   key: string,
   encryptedText: string
-): Promise<T | false> {
+): T | false {
   try {
     const minLength = (IV_LENGTH + GCM_TAG_LENGTH) * 2 + 2;
     if (encryptedText.length < minLength) {
