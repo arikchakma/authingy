@@ -1,7 +1,7 @@
 import * as oauth from 'oauth4webapi';
 import { AuthingyError } from '../error';
-import type { OAuthProvider, OAuthProviderConfig } from '../provider';
 import { buildAuthorizationUrl, getAuthorizationServer } from '../utils';
+import type { OAuthProvider, OAuthProviderConfig } from './types';
 
 export type GoogleUserProfile = {
   aud: string;
@@ -81,12 +81,18 @@ export function google(config: OAuthProviderConfig) {
       const { codeVerifier, state } = options;
 
       if (!codeVerifier) {
-        throw new AuthingyError('codeVerifier is required');
+        throw new AuthingyError(
+          'MISSING_CODE_VERIFIER',
+          'Code verifier is required'
+        );
       }
 
       as = await authorizationServer();
       if (!as.authorization_endpoint) {
-        throw new AuthingyError('Authorization endpoint not found');
+        throw new AuthingyError(
+          'MISSING_AUTHORIZATION_ENDPOINT',
+          'Authorization endpoint not found'
+        );
       }
 
       return buildAuthorizationUrl({
@@ -128,7 +134,7 @@ export function google(config: OAuthProviderConfig) {
     _user: async (options) => {
       const { token } = options;
 
-      const as = await getAuthorizationServer(issuer);
+      const as = await authorizationServer();
       const { access_token } = token;
       const claims = oauth.getValidatedIdTokenClaims(token)!;
       const { sub } = claims;

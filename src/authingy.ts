@@ -1,7 +1,7 @@
 import * as oauth from 'oauth4webapi';
 import { decrypt, encrypt } from './crypto';
 import { AuthingyError } from './error';
-import type { BaseUser, OAuthProvider } from './provider';
+import type { BaseUser, OAuthProvider } from './providers/types';
 
 export type AuthorizeResult = {
   url: string;
@@ -76,11 +76,14 @@ export function defineAuthingyConfig<
     authorize: async (id, data = {}) => {
       const provider = providerMap.get(id);
       if (!provider) {
-        throw new AuthingyError(`Provider "${String(id)}" not found`);
+        throw new AuthingyError(
+          'PROVIDER_NOT_FOUND',
+          `Provider "${String(id)}" not found`
+        );
       }
 
       const state = oauth.generateRandomState();
-      const encryptedWithState = await encrypt(secret, {
+      const encryptedWithState = encrypt(secret, {
         state,
         ...data,
       });
@@ -101,21 +104,24 @@ export function defineAuthingyConfig<
     callback: async (id, options) => {
       const provider = providerMap.get(id);
       if (!provider) {
-        throw new AuthingyError(`Provider "${String(id)}" not found`);
+        throw new AuthingyError(
+          'PROVIDER_NOT_FOUND',
+          `Provider "${String(id)}" not found`
+        );
       }
 
       const { url, codeVerifier, state: encryptedWithState } = options;
 
-      const decryptedState = await decrypt(secret, encryptedWithState);
+      const decryptedState = decrypt(secret, encryptedWithState);
       if (!decryptedState) {
-        throw new AuthingyError('Invalid state');
+        throw new AuthingyError('INVALID_STATE', 'Invalid state');
       }
 
       if (
         !('state' in decryptedState) ||
         typeof decryptedState.state !== 'string'
       ) {
-        throw new AuthingyError('Invalid state');
+        throw new AuthingyError('INVALID_STATE', 'Invalid state');
       }
 
       const token = await provider._callback({
