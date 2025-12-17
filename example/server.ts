@@ -1,5 +1,5 @@
 import type { Identifier } from '../src';
-import { defineAuthingyConfig, github, google } from '../src';
+import { defineAuthingyConfig, github, google, vercel } from '../src';
 
 const PORT = 5173;
 
@@ -15,6 +15,11 @@ const auth = defineAuthingyConfig({
       clientId: Bun.env.GITHUB_CLIENT_ID!,
       clientSecret: Bun.env.GITHUB_CLIENT_SECRET!,
       redirectUri: `http://localhost:${PORT}/api/v1/auth/github/callback`,
+    }),
+    vercel({
+      clientId: Bun.env.VERCEL_CLIENT_ID !,
+      clientSecret: Bun.env.VERCEL_CLIENT_SECRET !,
+      redirectUri: `http://localhost:${PORT}/api/v1/auth/vercel/callback`,
     }),
   ],
 });
