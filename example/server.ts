@@ -17,8 +17,8 @@ const auth = defineAuthingyConfig({
       redirectUri: `http://localhost:${PORT}/api/v1/auth/github/callback`,
     }),
     vercel({
-      clientId: Bun.env.VERCEL_CLIENT_ID !,
-      clientSecret: Bun.env.VERCEL_CLIENT_SECRET !,
+      clientId: Bun.env.VERCEL_CLIENT_ID!,
+      clientSecret: Bun.env.VERCEL_CLIENT_SECRET!,
       redirectUri: `http://localhost:${PORT}/api/v1/auth/vercel/callback`,
     }),
   ],

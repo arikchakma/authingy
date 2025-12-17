@@ -1,15 +1,15 @@
 import * as oauth from 'oauth4webapi';
 import { AuthingyError } from '../error';
-import { buildAuthorizationUrl } from '../utils';
+import { buildAuthorizationUrl, getAuthorizationServer } from '../utils';
 import type { OAuthProvider, OAuthProviderConfig } from './types';
 
 export type VercelUserProfile = {
   sub: string;
-  name?: string;
   email?: string;
+  email_verified?: boolean;
+  name?: string;
+  preferred_username?: string;
   picture?: string;
-  team_id?: string;
-  [key: string]: unknown;
 };
 
 /**
@@ -34,19 +34,20 @@ export function vercel(config: OAuthProviderConfig) {
     scopes: providedScopes,
   } = config;
 
-  // Vercel does not expose a discovery document; configure endpoints manually
-  const as: oauth.AuthorizationServer = {
-    issuer: 'https://vercel.com',
-    authorization_endpoint: 'https://vercel.com/oauth/authorize',
-    token_endpoint: 'https://api.vercel.com/login/oauth/token',
-    userinfo_endpoint: 'https://api.vercel.com/login/oauth/userinfo',
-  };
-
+  const issuer = new URL('https://vercel.com');
   const client: oauth.Client = { client_id: clientId };
   const clientAuth = oauth.ClientSecretPost(clientSecret);
 
   const defaultScopes = ['openid', 'email', 'profile'];
   const scopes = [...defaultScopes, ...(providedScopes ?? [])];
+  let as: oauth.AuthorizationServer | undefined;
+
+  const authorizationServer = async () => {
+    if (!as) {
+      as = await getAuthorizationServer(issuer);
+    }
+    return as;
+  };
 
   return {
     id: 'vercel',
@@ -59,6 +60,8 @@ export function vercel(config: OAuthProviderConfig) {
           'Code verifier is required'
         );
       }
+
+      const as = await authorizationServer();
 
       if (!as.authorization_endpoint) {
         throw new AuthingyError(
@@ -76,10 +79,16 @@ export function vercel(config: OAuthProviderConfig) {
         state,
       });
     },
+
     _callback: async (options) => {
       const { url, codeVerifier, state } = options;
-
-      const params = oauth.validateAuthResponse(as, client, url, state);
+      const as = await authorizationServer();
+      const params = oauth.validateAuthResponse(
+        as,
+        client,
+        url,
+        state
+      );
 
       const response = await oauth.authorizationCodeGrantRequest(
         as,
@@ -98,12 +107,13 @@ export function vercel(config: OAuthProviderConfig) {
 
       return result;
     },
+
     _user: async (options) => {
       const { token } = options;
       const { access_token } = token;
       const claims = oauth.getValidatedIdTokenClaims(token)!;
       const { sub } = claims;
-
+      const as = await authorizationServer();
       const userResponse = await oauth.userInfoRequest(
         as,
         client,
@@ -121,4 +131,3 @@ export function vercel(config: OAuthProviderConfig) {
     },
   } satisfies OAuthProvider<VercelUserProfile>;
 }
-
