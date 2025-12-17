@@ -1,14 +1,15 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "auth",
       "dependencies": {
-        "bumpp": "^10.3.2",
         "oauth4webapi": "^3.8.3",
       },
       "devDependencies": {
         "@types/bun": "latest",
+        "bumpp": "^10.3.2",
         "prettier": "^3.7.4",
         "prettier-plugin-organize-imports": "^4.3.0",
         "tsdown": "^0.17.3",
