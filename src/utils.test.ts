@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import * as oauth from 'oauth4webapi';
+
 import { buildAuthorizationUrl } from './utils';
 
 describe('utils', () => {

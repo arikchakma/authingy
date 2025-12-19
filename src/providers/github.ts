@@ -1,7 +1,9 @@
 import * as oauth from 'oauth4webapi';
+
+import type { OAuthProvider, OAuthProviderConfig } from './types';
+
 import { AuthingyError } from '../error';
 import { buildAuthorizationUrl } from '../utils';
-import type { OAuthProvider, OAuthProviderConfig } from './types';
 
 const GITHUB_API_VERSION = '2022-11-28';
 
@@ -100,7 +102,9 @@ export function github(config: GitHubProviderConfig) {
     userinfo_endpoint: 'https://api.github.com/user',
   };
 
-  const client: oauth.Client = { client_id: clientId };
+  const client: oauth.Client = {
+    client_id: clientId,
+  };
   const clientAuth = oauth.ClientSecretPost(clientSecret);
 
   // Default scopes for basic user information
