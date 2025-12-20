@@ -30,3 +30,6 @@ jobs:
 
       - name: Test
         run: bun run test
+
+      - name: Lint
+        run: bun run lint

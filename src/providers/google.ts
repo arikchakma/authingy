@@ -1,7 +1,9 @@
 import * as oauth from 'oauth4webapi';
+
+import type { OAuthProvider, OAuthProviderConfig } from './types';
+
 import { AuthingyError } from '../error';
 import { buildAuthorizationUrl, getAuthorizationServer } from '../utils';
-import type { OAuthProvider, OAuthProviderConfig } from './types';
 
 export type GoogleUserProfile = {
   aud: string;
@@ -60,7 +62,9 @@ export function google(config: OAuthProviderConfig) {
   } = config;
 
   const issuer = new URL('https://accounts.google.com');
-  const client: oauth.Client = { client_id: clientId };
+  const client: oauth.Client = {
+    client_id: clientId,
+  };
   const clientAuth = oauth.ClientSecretPost(clientSecret);
 
   const defaultScopes = ['openid', 'email', 'profile'];

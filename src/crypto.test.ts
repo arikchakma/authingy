@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'bun:test';
+
 import { decrypt, encrypt } from './crypto';
 
 const secret = '1234567890';
-const data = { name: 'John Doe', email: 'john.doe@example.com' };
+const data = {
+  name: 'John Doe',
+  email: 'john.doe@example.com',
+};
 
 describe('crypto', () => {
   it('should encrypt and decrypt data', () => {

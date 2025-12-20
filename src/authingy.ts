@@ -1,7 +1,9 @@
 import * as oauth from 'oauth4webapi';
+
+import type { BaseUser, OAuthProvider } from './providers/types';
+
 import { decrypt, encrypt } from './crypto';
 import { AuthingyError } from './error';
-import type { BaseUser, OAuthProvider } from './providers/types';
 
 export type AuthorizeResult = {
   url: string;
@@ -134,7 +136,7 @@ export function defineAuthingyConfig<
         token,
       });
 
-      const { state, ...data } = decryptedState;
+      const { state: _, ...data } = decryptedState;
 
       return {
         user,

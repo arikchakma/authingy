@@ -1,7 +1,9 @@
 import * as oauth from 'oauth4webapi';
+
+import type { OAuthProvider, OAuthProviderConfig } from './types';
+
 import { AuthingyError } from '../error';
 import { buildAuthorizationUrl, getAuthorizationServer } from '../utils';
-import type { OAuthProvider, OAuthProviderConfig } from './types';
 
 export type VercelUserProfile = {
   sub: string;
@@ -35,7 +37,9 @@ export function vercel(config: OAuthProviderConfig) {
   } = config;
 
   const issuer = new URL('https://vercel.com');
-  const client: oauth.Client = { client_id: clientId };
+  const client: oauth.Client = {
+    client_id: clientId,
+  };
   const clientAuth = oauth.ClientSecretPost(clientSecret);
 
   const defaultScopes = ['openid', 'email', 'profile'];
@@ -83,12 +87,7 @@ export function vercel(config: OAuthProviderConfig) {
     _callback: async (options) => {
       const { url, codeVerifier, state } = options;
       const as = await authorizationServer();
-      const params = oauth.validateAuthResponse(
-        as,
-        client,
-        url,
-        state
-      );
+      const params = oauth.validateAuthResponse(as, client, url, state);
 
       const response = await oauth.authorizationCodeGrantRequest(
         as,

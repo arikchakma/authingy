@@ -64,7 +64,7 @@ export function decrypt<T = Record<string, unknown>>(
     decrypted = Buffer.concat([decrypted, decipher.final()]);
 
     return JSON.parse(decrypted.toString('utf8'));
-  } catch (error) {
+  } catch {
     return false;
   }
 }

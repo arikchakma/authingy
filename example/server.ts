@@ -1,4 +1,5 @@
 import type { Identifier } from '../src';
+
 import { defineAuthingyConfig, github, google, vercel } from '../src';
 
 const PORT = 5173;
@@ -76,7 +77,10 @@ const server = Bun.serve({
       cookies.delete(COOKIE_NAME_STATE, { path: '/' });
       cookies.delete(COOKIE_NAME_CODE_VERIFIER, { path: '/' });
 
-      return Response.json({ user, data });
+      return Response.json({
+        user,
+        data,
+      });
     },
   },
 });

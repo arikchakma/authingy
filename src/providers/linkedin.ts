@@ -1,7 +1,9 @@
 import * as oauth from 'oauth4webapi';
+
+import type { OAuthProvider, OAuthProviderConfig } from './types';
+
 import { AuthingyError } from '../error';
 import { buildAuthorizationUrl, getAuthorizationServer } from '../utils';
-import type { OAuthProvider, OAuthProviderConfig } from './types';
 
 export type LinkedInUserProfile = {
   sub: string;
@@ -37,7 +39,9 @@ export function linkedin(config: OAuthProviderConfig) {
   } = config;
 
   const issuer = new URL('https://www.linkedin.com/oauth');
-  const client: oauth.Client = { client_id: clientId };
+  const client: oauth.Client = {
+    client_id: clientId,
+  };
   const clientAuth = oauth.ClientSecretPost(clientSecret);
 
   const defaultScopes = ['openid', 'profile', 'email'];
