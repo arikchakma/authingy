@@ -11,6 +11,11 @@ export type AuthorizeResult = {
   codeVerifier: string;
 };
 
+export type AuthorizeOptions = {
+  state?: string;
+  codeVerifier?: string;
+};
+
 export type CallbackOptions = {
   url: URL;
   codeVerifier: string;
@@ -35,7 +40,8 @@ export type AuthingyReturn<T extends readonly OAuthProvider<any>[]> = {
   '~providers': T;
   authorize: (
     id: Identifier<T>,
-    data?: Record<string, unknown>
+    data?: Record<string, unknown>,
+    options?: AuthorizeOptions
   ) => Promise<AuthorizeResult>;
   callback: <ID extends Identifier<T>>(
     id: ID,
@@ -75,7 +81,7 @@ export function defineAuthingyConfig<
 
   return {
     '~providers': providers,
-    authorize: async (id, data = {}) => {
+    authorize: async (id, data = {}, options = {}) => {
       const provider = providerMap.get(id);
       if (!provider) {
         throw new AuthingyError(
@@ -84,13 +90,14 @@ export function defineAuthingyConfig<
         );
       }
 
-      const state = oauth.generateRandomState();
+      const state = options.state ?? oauth.generateRandomState();
       const encryptedWithState = encrypt(secret, {
         state,
         ...data,
       });
 
-      const codeVerifier = oauth.generateRandomCodeVerifier();
+      const codeVerifier =
+        options.codeVerifier ?? oauth.generateRandomCodeVerifier();
 
       const url = await provider._authorization({
         state,
