@@ -1,6 +1,6 @@
 import type { Identifier } from '../src';
 
-import { defineAuthingyConfig, github, google, x } from '../src';
+import { defineAuthingyConfig, github, google, x, discord } from '../src';
 
 const PORT = 5173;
 
@@ -21,6 +21,11 @@ const auth = defineAuthingyConfig({
       clientId: Bun.env.X_CLIENT_ID!,
       clientSecret: Bun.env.X_CLIENT_SECRET!,
       redirectUri: `http://localhost:${PORT}/api/v1/auth/x/callback`,
+    }),
+    discord({
+      clientId: Bun.env.DISCORD_CLIENT_ID!,
+      clientSecret: Bun.env.DISCORD_CLIENT_SECRET!,
+      redirectUri: `http://localhost:${PORT}/api/v1/auth/discord/callback`,
     }),
   ],
 });

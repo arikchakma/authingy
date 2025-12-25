@@ -44,7 +44,13 @@ export type XUserProfile = {
 /**
  * X (Twitter) OAuth provider configuration
  */
-export type XProviderConfig = OAuthProviderConfig;
+export type XProviderConfig = OAuthProviderConfig & {
+  /**
+   * Additional user fields to request from the X API
+   * @see https://developer.x.com/en/docs/twitter-api/users/lookup/api-reference/get-users-me
+   */
+  userFields?: string[];
+};
 
 /**
  * X (Twitter) OAuth 2.0 provider
@@ -62,6 +68,7 @@ export type XProviderConfig = OAuthProviderConfig;
  *   clientSecret: process.env.X_CLIENT_SECRET,
  *   redirectUri: 'https://myapp.com/auth/callback/x',
  *   scopes: ['tweet.read', 'users.read'],
+ *   userFields: ['pinned_tweet_id', 'most_recent_tweet_id'],
  * });
  * ```
  */
@@ -71,6 +78,7 @@ export function x(config: XProviderConfig) {
     clientSecret,
     redirectUri,
     scopes: providedScopes,
+    userFields: providedUserFields,
   } = config;
 
   // X doesn't support OIDC discovery, so we manually configure the endpoints
@@ -85,7 +93,8 @@ export function x(config: XProviderConfig) {
   const defaultScopes = ['users.read', 'tweet.read', 'offline.access'];
   const scopes = [...defaultScopes, ...(providedScopes ?? [])];
 
-  const userFields = [
+  // Default user fields to request from the X API
+  const defaultUserFields = [
     'id',
     'name',
     'username',
@@ -99,6 +108,7 @@ export function x(config: XProviderConfig) {
     'protected',
     'public_metrics',
   ];
+  const userFields = [...defaultUserFields, ...(providedUserFields ?? [])];
 
   return {
     id: 'x',
