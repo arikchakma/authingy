@@ -3,3 +3,4 @@ export * from './google';
 export * from './linkedin';
 export * from './types';
 export * from './vercel';
+export * from './x';
