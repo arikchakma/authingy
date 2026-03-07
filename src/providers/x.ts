@@ -1,4 +1,4 @@
-import type { TokenEndpointResponse } from 'oauth4webapi';
+import * as oauth from 'oauth4webapi';
 
 import type { OAuthProvider, OAuthProviderConfig } from './types';
 
@@ -83,15 +83,23 @@ export function x(config: XProviderConfig) {
 
   // X doesn't support OIDC discovery, so we manually configure the endpoints
   // @see https://developer.x.com/en/docs/authentication/oauth-2-0/authorization-code
-  const authorizationEndpoint = 'https://x.com/i/oauth2/authorize';
-  const tokenEndpoint = 'https://api.x.com/2/oauth2/token';
+  const as: oauth.AuthorizationServer = {
+    issuer: 'https://x.com',
+    authorization_endpoint: 'https://x.com/i/oauth2/authorize',
+    token_endpoint: 'https://api.x.com/2/oauth2/token',
+  };
+
+  const client: oauth.Client = {
+    client_id: clientId,
+  };
+  const clientAuth = oauth.ClientSecretBasic(clientSecret);
 
   // Default scopes for basic user information
   // `users.read` grants access to read user profile data
   // `tweet.read` is required by X for most OAuth apps
   // `offline.access` grants refresh tokens
   const defaultScopes = ['users.read', 'tweet.read', 'offline.access'];
-  const scopes = [...defaultScopes, ...(providedScopes ?? [])];
+  const scopes = [...new Set([...defaultScopes, ...(providedScopes ?? [])])];
 
   // Default user fields to request from the X API
   const defaultUserFields = [
@@ -108,23 +116,18 @@ export function x(config: XProviderConfig) {
     'protected',
     'public_metrics',
   ];
-  const userFields = [...defaultUserFields, ...(providedUserFields ?? [])];
+  const userFields = [
+    ...new Set([...defaultUserFields, ...(providedUserFields ?? [])]),
+  ];
 
   return {
     id: 'x',
     _authorization: async (options) => {
       const { codeVerifier, state } = options;
 
-      if (!codeVerifier) {
-        throw new AuthingyError(
-          'MISSING_CODE_VERIFIER',
-          'Code verifier is required'
-        );
-      }
-
       return buildAuthorizationUrl({
-        authorizationEndpoint,
-        clientId,
+        authorizationEndpoint: as.authorization_endpoint!,
+        clientId: client.client_id,
         redirectUri,
         scopes,
         codeVerifier,
@@ -134,55 +137,26 @@ export function x(config: XProviderConfig) {
     _callback: async (options) => {
       const { url, codeVerifier, state } = options;
 
-      // Validate the callback URL has required params
-      const code = url.searchParams.get('code');
-      const returnedState = url.searchParams.get('state');
+      const params = oauth.validateAuthResponse(as, client, url, state);
 
-      if (!code) {
-        throw new AuthingyError(
-          'TOKEN_EXCHANGE_FAILED',
-          'Missing authorization code in callback'
-        );
-      }
-
-      if (returnedState !== state) {
-        throw new AuthingyError('INVALID_STATE', 'State mismatch in callback');
-      }
-
-      // X requires Basic Auth with client credentials
-      // @see https://developer.x.com/en/docs/authentication/oauth-2-0/user-access-token
-      const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString(
-        'base64'
+      const response = await oauth.authorizationCodeGrantRequest(
+        as,
+        client,
+        clientAuth,
+        params,
+        redirectUri,
+        codeVerifier
       );
 
-      const tokenResponse = await fetch(tokenEndpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          Authorization: `Basic ${basicAuth}`,
-        },
-        body: new URLSearchParams({
-          grant_type: 'authorization_code',
-          code,
-          redirect_uri: redirectUri,
-          code_verifier: codeVerifier,
-        }),
-      });
+      const result = await oauth.processAuthorizationCodeResponse(
+        as,
+        client,
+        response,
+        {
+          requireIdToken: false,
+        }
+      );
 
-      if (!tokenResponse.ok) {
-        const errorBody = await tokenResponse.text();
-        throw new AuthingyError(
-          'TOKEN_EXCHANGE_FAILED',
-          'Failed to exchange authorization code for tokens',
-          {
-            status: tokenResponse.status,
-            statusText: tokenResponse.statusText,
-            body: errorBody,
-          }
-        );
-      }
-
-      const result = (await tokenResponse.json()) as TokenEndpointResponse;
       return result;
     },
     _user: async (options) => {

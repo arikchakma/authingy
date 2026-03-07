@@ -53,12 +53,18 @@ export type GoogleUserProfile = {
  * });
  * ```
  */
-export function google(config: OAuthProviderConfig) {
+export type GoogleProviderConfig = OAuthProviderConfig & {
+  /** Additional query parameters for the authorization URL */
+  extraParams?: Record<string, string>;
+};
+
+export function google(config: GoogleProviderConfig) {
   const {
     clientId,
     clientSecret,
     redirectUri,
     scopes: providedScopes,
+    extraParams: providedExtraParams,
   } = config;
 
   const issuer = new URL('https://accounts.google.com');
@@ -68,7 +74,7 @@ export function google(config: OAuthProviderConfig) {
   const clientAuth = oauth.ClientSecretPost(clientSecret);
 
   const defaultScopes = ['openid', 'email', 'profile'];
-  const scopes = [...defaultScopes, ...(providedScopes ?? [])];
+  const scopes = [...new Set([...defaultScopes, ...(providedScopes ?? [])])];
 
   let as: oauth.AuthorizationServer | undefined;
   const authorizationServer = async () => {
@@ -83,13 +89,6 @@ export function google(config: OAuthProviderConfig) {
     id: 'google',
     _authorization: async (options) => {
       const { codeVerifier, state } = options;
-
-      if (!codeVerifier) {
-        throw new AuthingyError(
-          'MISSING_CODE_VERIFIER',
-          'Code verifier is required'
-        );
-      }
 
       as = await authorizationServer();
       if (!as.authorization_endpoint) {
@@ -108,8 +107,9 @@ export function google(config: OAuthProviderConfig) {
         state,
         extraParams: {
           access_type: 'offline',
-          prompt: 'consent',
+          prompt: 'select_account',
           include_granted_scopes: 'true',
+          ...providedExtraParams,
         },
       });
     },
@@ -140,7 +140,13 @@ export function google(config: OAuthProviderConfig) {
 
       const as = await authorizationServer();
       const { access_token } = token;
-      const claims = oauth.getValidatedIdTokenClaims(token)!;
+      const claims = oauth.getValidatedIdTokenClaims(token);
+      if (!claims) {
+        throw new AuthingyError(
+          'USER_FETCH_FAILED',
+          'Missing ID token claims in Google token response'
+        );
+      }
       const { sub } = claims;
 
       const userResponse = await oauth.userInfoRequest(

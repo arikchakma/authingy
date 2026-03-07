@@ -45,7 +45,7 @@ export function linkedin(config: OAuthProviderConfig) {
   const clientAuth = oauth.ClientSecretPost(clientSecret);
 
   const defaultScopes = ['openid', 'profile', 'email'];
-  const scopes = [...defaultScopes, ...(providedScopes ?? [])];
+  const scopes = [...new Set([...defaultScopes, ...(providedScopes ?? [])])];
 
   let as: oauth.AuthorizationServer | undefined;
   const authorizationServer = async () => {
@@ -59,13 +59,6 @@ export function linkedin(config: OAuthProviderConfig) {
     id: 'linkedin',
     _authorization: async (options) => {
       const { codeVerifier, state } = options;
-
-      if (!codeVerifier) {
-        throw new AuthingyError(
-          'MISSING_CODE_VERIFIER',
-          'Code verifier is required'
-        );
-      }
 
       as = await authorizationServer();
       if (!as.authorization_endpoint) {
@@ -111,7 +104,13 @@ export function linkedin(config: OAuthProviderConfig) {
 
       const as = await authorizationServer();
       const { access_token } = token;
-      const claims = oauth.getValidatedIdTokenClaims(token)!;
+      const claims = oauth.getValidatedIdTokenClaims(token);
+      if (!claims) {
+        throw new AuthingyError(
+          'USER_FETCH_FAILED',
+          'Missing ID token claims in LinkedIn token response'
+        );
+      }
       const { sub } = claims;
 
       const userResponse = await oauth.userInfoRequest(

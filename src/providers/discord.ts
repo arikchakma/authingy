@@ -1,4 +1,4 @@
-import type { TokenEndpointResponse } from 'oauth4webapi';
+import * as oauth from 'oauth4webapi';
 
 import type { OAuthProvider, OAuthProviderConfig } from './types';
 
@@ -79,31 +79,31 @@ export function discord(config: DiscordProviderConfig) {
 
   // Discord OAuth2 endpoints
   // @see https://discord.com/developers/docs/topics/oauth2#shared-resources-oauth2-urls
-  const authorizationEndpoint = 'https://discord.com/oauth2/authorize';
-  const tokenEndpoint = 'https://discord.com/api/oauth2/token';
-  const userinfoEndpoint = 'https://discord.com/api/users/@me';
+  const as: oauth.AuthorizationServer = {
+    issuer: 'https://discord.com',
+    authorization_endpoint: 'https://discord.com/oauth2/authorize',
+    token_endpoint: 'https://discord.com/api/oauth2/token',
+  };
+
+  const client: oauth.Client = {
+    client_id: clientId,
+  };
+  const clientAuth = oauth.ClientSecretPost(clientSecret);
 
   // Default scopes for basic user information
   // `identify` grants access to read user profile data (excluding email)
   // `email` grants access to read user's email address
   const defaultScopes = ['identify', 'email'];
-  const scopes = [...defaultScopes, ...(providedScopes ?? [])];
+  const scopes = [...new Set([...defaultScopes, ...(providedScopes ?? [])])];
 
   return {
     id: 'discord',
     _authorization: async (options) => {
       const { codeVerifier, state } = options;
 
-      if (!codeVerifier) {
-        throw new AuthingyError(
-          'MISSING_CODE_VERIFIER',
-          'Code verifier is required'
-        );
-      }
-
       return buildAuthorizationUrl({
-        authorizationEndpoint,
-        clientId,
+        authorizationEndpoint: as.authorization_endpoint!,
+        clientId: client.client_id,
         redirectUri,
         scopes,
         codeVerifier,
@@ -113,52 +113,26 @@ export function discord(config: DiscordProviderConfig) {
     _callback: async (options) => {
       const { url, codeVerifier, state } = options;
 
-      // Validate the callback URL has required params
-      const code = url.searchParams.get('code');
-      const returnedState = url.searchParams.get('state');
+      const params = oauth.validateAuthResponse(as, client, url, state);
 
-      if (!code) {
-        throw new AuthingyError(
-          'TOKEN_EXCHANGE_FAILED',
-          'Missing authorization code in callback'
-        );
-      }
+      const response = await oauth.authorizationCodeGrantRequest(
+        as,
+        client,
+        clientAuth,
+        params,
+        redirectUri,
+        codeVerifier
+      );
 
-      if (returnedState !== state) {
-        throw new AuthingyError('INVALID_STATE', 'State mismatch in callback');
-      }
+      const result = await oauth.processAuthorizationCodeResponse(
+        as,
+        client,
+        response,
+        {
+          requireIdToken: false,
+        }
+      );
 
-      // Discord uses client credentials in the POST body
-      // @see https://discord.com/developers/docs/topics/oauth2#authorization-code-grant-access-token-exchange-example
-      const tokenResponse = await fetch(tokenEndpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          grant_type: 'authorization_code',
-          code,
-          redirect_uri: redirectUri,
-          client_id: clientId,
-          client_secret: clientSecret,
-          code_verifier: codeVerifier,
-        }),
-      });
-
-      if (!tokenResponse.ok) {
-        const errorBody = await tokenResponse.text();
-        throw new AuthingyError(
-          'TOKEN_EXCHANGE_FAILED',
-          'Failed to exchange authorization code for tokens',
-          {
-            status: tokenResponse.status,
-            statusText: tokenResponse.statusText,
-            body: errorBody,
-          }
-        );
-      }
-
-      const result = (await tokenResponse.json()) as TokenEndpointResponse;
       return result;
     },
     _user: async (options) => {
@@ -167,7 +141,7 @@ export function discord(config: DiscordProviderConfig) {
 
       // Fetch user profile from Discord API
       // @see https://discord.com/developers/docs/resources/user#get-current-user
-      const userResponse = await fetch(userinfoEndpoint, {
+      const userResponse = await fetch('https://discord.com/api/users/@me', {
         headers: {
           Authorization: `Bearer ${access_token}`,
         },

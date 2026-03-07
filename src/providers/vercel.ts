@@ -43,7 +43,7 @@ export function vercel(config: OAuthProviderConfig) {
   const clientAuth = oauth.ClientSecretPost(clientSecret);
 
   const defaultScopes = ['openid', 'email', 'profile'];
-  const scopes = [...defaultScopes, ...(providedScopes ?? [])];
+  const scopes = [...new Set([...defaultScopes, ...(providedScopes ?? [])])];
   let as: oauth.AuthorizationServer | undefined;
 
   const authorizationServer = async () => {
@@ -57,13 +57,6 @@ export function vercel(config: OAuthProviderConfig) {
     id: 'vercel',
     _authorization: async (options) => {
       const { codeVerifier, state } = options;
-
-      if (!codeVerifier) {
-        throw new AuthingyError(
-          'MISSING_CODE_VERIFIER',
-          'Code verifier is required'
-        );
-      }
 
       const as = await authorizationServer();
 
@@ -110,7 +103,13 @@ export function vercel(config: OAuthProviderConfig) {
     _user: async (options) => {
       const { token } = options;
       const { access_token } = token;
-      const claims = oauth.getValidatedIdTokenClaims(token)!;
+      const claims = oauth.getValidatedIdTokenClaims(token);
+      if (!claims) {
+        throw new AuthingyError(
+          'USER_FETCH_FAILED',
+          'Missing ID token claims in Vercel token response'
+        );
+      }
       const { sub } = claims;
       const as = await authorizationServer();
       const userResponse = await oauth.userInfoRequest(

@@ -111,19 +111,12 @@ export function github(config: GitHubProviderConfig) {
   // `read:user` grants access to read user profile data
   // `user:email` grants access to read user email addresses
   const defaultScopes = ['read:user', 'user:email'];
-  const scopes = [...defaultScopes, ...(providedScopes ?? [])];
+  const scopes = [...new Set([...defaultScopes, ...(providedScopes ?? [])])];
 
   return {
     id: 'github',
     _authorization: async (options) => {
       const { codeVerifier, state } = options;
-
-      if (!codeVerifier) {
-        throw new AuthingyError(
-          'MISSING_CODE_VERIFIER',
-          'Code verifier is required'
-        );
-      }
 
       return buildAuthorizationUrl({
         authorizationEndpoint: as.authorization_endpoint!,
