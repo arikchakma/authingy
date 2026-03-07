@@ -92,7 +92,6 @@ export function x(config: XProviderConfig) {
   const client: oauth.Client = {
     client_id: clientId,
   };
-  const clientAuth = oauth.ClientSecretBasic(clientSecret);
 
   // Default scopes for basic user information
   // `users.read` grants access to read user profile data
@@ -139,14 +138,21 @@ export function x(config: XProviderConfig) {
 
       const params = oauth.validateAuthResponse(as, client, url, state);
 
-      const response = await oauth.authorizationCodeGrantRequest(
-        as,
-        client,
-        clientAuth,
-        params,
-        redirectUri,
-        codeVerifier
-      );
+      // X requires Basic Auth — oauth4webapi's auth methods are incompatible
+      // @see https://developer.x.com/en/docs/authentication/oauth-2-0/user-access-token
+      const response = await fetch(as.token_endpoint!, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Authorization: `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
+        },
+        body: new URLSearchParams({
+          grant_type: 'authorization_code',
+          code: String(params.get('code')),
+          redirect_uri: redirectUri,
+          code_verifier: codeVerifier,
+        }),
+      });
 
       const result = await oauth.processAuthorizationCodeResponse(
         as,
@@ -175,12 +181,14 @@ export function x(config: XProviderConfig) {
       });
 
       if (!userResponse.ok) {
+        const body = await userResponse.text().catch(() => '');
         throw new AuthingyError(
           'USER_FETCH_FAILED',
           'Failed to fetch X user profile',
           {
             status: userResponse.status,
             statusText: userResponse.statusText,
+            body,
           }
         );
       }
