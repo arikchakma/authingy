@@ -1,9 +1,10 @@
 import * as oauth from 'oauth4webapi';
 
-import type { OAuthProvider, OAuthProviderConfig } from './types';
+import type { OAuthProviderConfig } from './types';
 
 import { AuthingyError } from '../error';
 import { buildAuthorizationUrl } from '../utils';
+import { defineProvider } from './types';
 
 /**
  * X (Twitter) user profile returned from the X API v2
@@ -72,7 +73,7 @@ export type XProviderConfig = OAuthProviderConfig & {
  * });
  * ```
  */
-export function x(config: XProviderConfig) {
+export const x = defineProvider<XUserProfile, XProviderConfig>((config) => {
   const {
     clientId,
     clientSecret,
@@ -121,6 +122,7 @@ export function x(config: XProviderConfig) {
 
   return {
     id: 'x',
+
     _authorization: async (options) => {
       const { codeVerifier, state } = options;
 
@@ -196,5 +198,5 @@ export function x(config: XProviderConfig) {
       const response = (await userResponse.json()) as { data: XUserProfile };
       return response.data;
     },
-  } satisfies OAuthProvider<XUserProfile>;
-}
+  };
+});

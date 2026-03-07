@@ -1,9 +1,10 @@
 import * as oauth from 'oauth4webapi';
 
-import type { OAuthProvider, OAuthProviderConfig } from './types';
+import type { OAuthProviderConfig } from './types';
 
 import { AuthingyError } from '../error';
 import { buildAuthorizationUrl } from '../utils';
+import { defineProvider } from './types';
 
 /**
  * Discord user profile returned from the Discord API
@@ -69,7 +70,10 @@ export type DiscordProviderConfig = OAuthProviderConfig;
  * });
  * ```
  */
-export function discord(config: DiscordProviderConfig) {
+export const discord = defineProvider<
+  DiscordUserProfile,
+  DiscordProviderConfig
+>((config) => {
   const {
     clientId,
     clientSecret,
@@ -161,5 +165,5 @@ export function discord(config: DiscordProviderConfig) {
       const userProfile = (await userResponse.json()) as DiscordUserProfile;
       return userProfile;
     },
-  } satisfies OAuthProvider<DiscordUserProfile>;
-}
+  };
+});

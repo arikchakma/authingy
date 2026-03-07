@@ -1,9 +1,10 @@
 import * as oauth from 'oauth4webapi';
 
-import type { OAuthProvider, OAuthProviderConfig } from './types';
+import type { OAuthProviderConfig } from './types';
 
 import { AuthingyError } from '../error';
 import { buildAuthorizationUrl, getAuthorizationServer } from '../utils';
+import { defineProvider } from './types';
 
 export type GoogleUserProfile = {
   aud: string;
@@ -58,111 +59,113 @@ export type GoogleProviderConfig = OAuthProviderConfig & {
   extraParams?: Record<string, string>;
 };
 
-export function google(config: GoogleProviderConfig) {
-  const {
-    clientId,
-    clientSecret,
-    redirectUri,
-    scopes: providedScopes,
-    extraParams: providedExtraParams,
-  } = config;
+export const google = defineProvider<GoogleUserProfile, GoogleProviderConfig>(
+  (config) => {
+    const {
+      clientId,
+      clientSecret,
+      redirectUri,
+      scopes: providedScopes,
+      extraParams: providedExtraParams,
+    } = config;
 
-  const issuer = new URL('https://accounts.google.com');
-  const client: oauth.Client = {
-    client_id: clientId,
-  };
-  const clientAuth = oauth.ClientSecretPost(clientSecret);
+    const issuer = new URL('https://accounts.google.com');
+    const client: oauth.Client = {
+      client_id: clientId,
+    };
+    const clientAuth = oauth.ClientSecretPost(clientSecret);
 
-  const defaultScopes = ['openid', 'email', 'profile'];
-  const scopes = [...new Set([...defaultScopes, ...(providedScopes ?? [])])];
+    const defaultScopes = ['openid', 'email', 'profile'];
+    const scopes = [...new Set([...defaultScopes, ...(providedScopes ?? [])])];
 
-  let as: oauth.AuthorizationServer | undefined;
-  const authorizationServer = async () => {
-    if (!as) {
-      as = await getAuthorizationServer(issuer);
-    }
-
-    return as;
-  };
-
-  return {
-    id: 'google',
-    _authorization: async (options) => {
-      const { codeVerifier, state } = options;
-
-      as = await authorizationServer();
-      if (!as.authorization_endpoint) {
-        throw new AuthingyError(
-          'MISSING_AUTHORIZATION_ENDPOINT',
-          'Authorization endpoint not found'
-        );
+    let as: oauth.AuthorizationServer | undefined;
+    const authorizationServer = async () => {
+      if (!as) {
+        as = await getAuthorizationServer(issuer);
       }
 
-      return buildAuthorizationUrl({
-        authorizationEndpoint: as.authorization_endpoint,
-        clientId: client.client_id,
-        redirectUri,
-        scopes,
-        codeVerifier,
-        state,
-        extraParams: {
-          access_type: 'offline',
-          prompt: 'select_account',
-          include_granted_scopes: 'true',
-          ...providedExtraParams,
-        },
-      });
-    },
-    _callback: async (options) => {
-      const { url, codeVerifier, state } = options;
-      const as = await authorizationServer();
-      const params = oauth.validateAuthResponse(as, client, url, state);
+      return as;
+    };
 
-      const response = await oauth.authorizationCodeGrantRequest(
-        as,
-        client,
-        clientAuth,
-        params,
-        config.redirectUri,
-        codeVerifier
-      );
+    return {
+      id: 'google',
+      _authorization: async (options) => {
+        const { codeVerifier, state } = options;
 
-      const result = await oauth.processAuthorizationCodeResponse(
-        as,
-        client,
-        response
-      );
+        as = await authorizationServer();
+        if (!as.authorization_endpoint) {
+          throw new AuthingyError(
+            'MISSING_AUTHORIZATION_ENDPOINT',
+            'Authorization endpoint not found'
+          );
+        }
 
-      return result;
-    },
-    _user: async (options) => {
-      const { token } = options;
+        return buildAuthorizationUrl({
+          authorizationEndpoint: as.authorization_endpoint,
+          clientId: client.client_id,
+          redirectUri,
+          scopes,
+          codeVerifier,
+          state,
+          extraParams: {
+            access_type: 'offline',
+            prompt: 'select_account',
+            include_granted_scopes: 'true',
+            ...providedExtraParams,
+          },
+        });
+      },
+      _callback: async (options) => {
+        const { url, codeVerifier, state } = options;
+        const as = await authorizationServer();
+        const params = oauth.validateAuthResponse(as, client, url, state);
 
-      const as = await authorizationServer();
-      const { access_token } = token;
-      const claims = oauth.getValidatedIdTokenClaims(token);
-      if (!claims) {
-        throw new AuthingyError(
-          'USER_FETCH_FAILED',
-          'Missing ID token claims in Google token response'
+        const response = await oauth.authorizationCodeGrantRequest(
+          as,
+          client,
+          clientAuth,
+          params,
+          config.redirectUri,
+          codeVerifier
         );
-      }
-      const { sub } = claims;
 
-      const userResponse = await oauth.userInfoRequest(
-        as,
-        client,
-        access_token
-      );
+        const result = await oauth.processAuthorizationCodeResponse(
+          as,
+          client,
+          response
+        );
 
-      const userResult = await oauth.processUserInfoResponse(
-        as,
-        client,
-        sub,
-        userResponse
-      );
+        return result;
+      },
+      _user: async (options) => {
+        const { token } = options;
 
-      return userResult as GoogleUserProfile;
-    },
-  } satisfies OAuthProvider<GoogleUserProfile>;
-}
+        const as = await authorizationServer();
+        const { access_token } = token;
+        const claims = oauth.getValidatedIdTokenClaims(token);
+        if (!claims) {
+          throw new AuthingyError(
+            'USER_FETCH_FAILED',
+            'Missing ID token claims in Google token response'
+          );
+        }
+        const { sub } = claims;
+
+        const userResponse = await oauth.userInfoRequest(
+          as,
+          client,
+          access_token
+        );
+
+        const userResult = await oauth.processUserInfoResponse(
+          as,
+          client,
+          sub,
+          userResponse
+        );
+
+        return userResult as GoogleUserProfile;
+      },
+    };
+  }
+);

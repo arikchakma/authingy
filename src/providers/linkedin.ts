@@ -1,9 +1,10 @@
 import * as oauth from 'oauth4webapi';
 
-import type { OAuthProvider, OAuthProviderConfig } from './types';
+import type { OAuthProviderConfig } from './types';
 
 import { AuthingyError } from '../error';
 import { buildAuthorizationUrl, getAuthorizationServer } from '../utils';
+import { defineProvider } from './types';
 
 export type LinkedInUserProfile = {
   sub: string;
@@ -30,7 +31,10 @@ export type LinkedInUserProfile = {
  * });
  * ```
  */
-export function linkedin(config: OAuthProviderConfig) {
+export const linkedin = defineProvider<
+  LinkedInUserProfile,
+  OAuthProviderConfig
+>((config) => {
   const {
     clientId,
     clientSecret,
@@ -127,5 +131,5 @@ export function linkedin(config: OAuthProviderConfig) {
 
       return userResult as LinkedInUserProfile;
     },
-  } satisfies OAuthProvider<LinkedInUserProfile>;
-}
+  };
+});
