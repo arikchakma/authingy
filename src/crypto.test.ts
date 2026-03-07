@@ -73,7 +73,10 @@ describe('crypto', () => {
   });
 
   it('should return false for non-hex input', async () => {
-    const decrypted = await decrypt(secret, 'zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz');
+    const decrypted = await decrypt(
+      secret,
+      'zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz'
+    );
     expect(decrypted).toBe(false);
   });
 

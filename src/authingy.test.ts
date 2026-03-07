@@ -1,10 +1,12 @@
-import { describe, expect, it } from 'bun:test';
 import type * as oauth from 'oauth4webapi';
+
+import { describe, expect, it } from 'bun:test';
+
+import type { OAuthProvider } from './providers/types';
 
 import { defineAuthingyConfig } from './authingy';
 import { decrypt } from './crypto';
 import { AuthingyError } from './error';
-import type { OAuthProvider } from './providers/types';
 
 function createMockProvider(
   id: string,
@@ -83,17 +85,18 @@ describe('defineAuthingyConfig', () => {
         providers: [createMockProvider('mock')],
       });
 
-      const result = await auth.authorize('mock', {}, {
-        state: 'custom-state',
-        codeVerifier: 'custom-verifier',
-      });
+      const result = await auth.authorize(
+        'mock',
+        {},
+        {
+          state: 'custom-state',
+          codeVerifier: 'custom-verifier',
+        }
+      );
 
       expect(result.codeVerifier).toBe('custom-verifier');
 
-      const decrypted = await decrypt<{ state: string }>(
-        secret,
-        result.state
-      );
+      const decrypted = await decrypt<{ state: string }>(secret, result.state);
       expect(decrypted).not.toBe(false);
       if (decrypted) {
         expect(decrypted.state).toBe('custom-state');
