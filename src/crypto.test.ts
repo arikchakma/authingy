@@ -84,8 +84,8 @@ describe('crypto', () => {
     const enc1 = await encrypt('secret-one', data);
     const enc2 = await encrypt('secret-two', data);
 
-    expect(await decrypt('secret-one', enc1)).toEqual(data);
-    expect(await decrypt('secret-two', enc2)).toEqual(data);
+    expect(await decrypt<typeof data>('secret-one', enc1)).toEqual(data);
+    expect(await decrypt<typeof data>('secret-two', enc2)).toEqual(data);
     expect(await decrypt('secret-one', enc2)).toBe(false);
     expect(await decrypt('secret-two', enc1)).toBe(false);
   });
