@@ -1,9 +1,10 @@
 import * as oauth from 'oauth4webapi';
 
-import type { OAuthProvider, OAuthProviderConfig } from './types';
+import type { OAuthProviderConfig } from './types';
 
 import { AuthingyError } from '../error';
 import { buildAuthorizationUrl } from '../utils';
+import { defineProvider } from './types';
 
 const GITHUB_API_VERSION = '2022-11-28';
 
@@ -85,140 +86,135 @@ export type GitHubProviderConfig = OAuthProviderConfig;
  * });
  * ```
  */
-export function github(config: GitHubProviderConfig) {
-  const {
-    clientId,
-    clientSecret,
-    redirectUri,
-    scopes: providedScopes,
-  } = config;
+export const github = defineProvider<GitHubUserProfile, GitHubProviderConfig>(
+  (config) => {
+    const {
+      clientId,
+      clientSecret,
+      redirectUri,
+      scopes: providedScopes,
+    } = config;
 
-  // GitHub doesn't support OIDC discovery, so we manually configure the endpoints
-  // @see https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps
-  const as: oauth.AuthorizationServer = {
-    issuer: 'https://github.com',
-    authorization_endpoint: 'https://github.com/login/oauth/authorize',
-    token_endpoint: 'https://github.com/login/oauth/access_token',
-    userinfo_endpoint: 'https://api.github.com/user',
-  };
+    // GitHub doesn't support OIDC discovery, so we manually configure the endpoints
+    // @see https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps
+    const as: oauth.AuthorizationServer = {
+      issuer: 'https://github.com',
+      authorization_endpoint: 'https://github.com/login/oauth/authorize',
+      token_endpoint: 'https://github.com/login/oauth/access_token',
+      userinfo_endpoint: 'https://api.github.com/user',
+    };
 
-  const client: oauth.Client = {
-    client_id: clientId,
-  };
-  const clientAuth = oauth.ClientSecretPost(clientSecret);
+    const client: oauth.Client = {
+      client_id: clientId,
+    };
+    const clientAuth = oauth.ClientSecretPost(clientSecret);
 
-  // Default scopes for basic user information
-  // `read:user` grants access to read user profile data
-  // `user:email` grants access to read user email addresses
-  const defaultScopes = ['read:user', 'user:email'];
-  const scopes = [...defaultScopes, ...(providedScopes ?? [])];
+    // Default scopes for basic user information
+    // `read:user` grants access to read user profile data
+    // `user:email` grants access to read user email addresses
+    const defaultScopes = ['read:user', 'user:email'];
+    const scopes = [...new Set([...defaultScopes, ...(providedScopes ?? [])])];
 
-  return {
-    id: 'github',
-    _authorization: async (options) => {
-      const { codeVerifier, state } = options;
+    return {
+      id: 'github',
+      _authorization: async (options) => {
+        const { codeVerifier, state } = options;
 
-      if (!codeVerifier) {
-        throw new AuthingyError(
-          'MISSING_CODE_VERIFIER',
-          'Code verifier is required'
+        return buildAuthorizationUrl({
+          authorizationEndpoint: as.authorization_endpoint!,
+          clientId: client.client_id,
+          redirectUri,
+          scopes,
+          codeVerifier,
+          state,
+        });
+      },
+      _callback: async (options) => {
+        const { url, codeVerifier, state } = options;
+
+        const params = oauth.validateAuthResponse(as, client, url, state);
+
+        const response = await oauth.authorizationCodeGrantRequest(
+          as,
+          client,
+          clientAuth,
+          params,
+          redirectUri,
+          codeVerifier
         );
-      }
 
-      return buildAuthorizationUrl({
-        authorizationEndpoint: as.authorization_endpoint!,
-        clientId: client.client_id,
-        redirectUri,
-        scopes,
-        codeVerifier,
-        state,
-      });
-    },
-    _callback: async (options) => {
-      const { url, codeVerifier, state } = options;
-
-      const params = oauth.validateAuthResponse(as, client, url, state);
-
-      const response = await oauth.authorizationCodeGrantRequest(
-        as,
-        client,
-        clientAuth,
-        params,
-        redirectUri,
-        codeVerifier
-      );
-
-      const result = await oauth.processAuthorizationCodeResponse(
-        as,
-        client,
-        response,
-        {
-          requireIdToken: false,
-        }
-      );
-
-      return result;
-    },
-    _user: async (options) => {
-      const { token } = options;
-      const { access_token } = token;
-
-      // Fetch user profile from GitHub API
-      // @see https://docs.github.com/en/rest/users/users#get-the-authenticated-user
-      const userResponse = await fetch(as.userinfo_endpoint!, {
-        headers: {
-          Authorization: `Bearer ${access_token}`,
-          Accept: 'application/vnd.github+json',
-          'X-GitHub-Api-Version': GITHUB_API_VERSION,
-        },
-      });
-
-      if (!userResponse.ok) {
-        throw new AuthingyError(
-          'USER_FETCH_FAILED',
-          'Failed to fetch GitHub user profile',
+        const result = await oauth.processAuthorizationCodeResponse(
+          as,
+          client,
+          response,
           {
-            status: userResponse.status,
-            statusText: userResponse.statusText,
+            requireIdToken: false,
           }
         );
-      }
 
-      const userProfile = (await userResponse.json()) as GitHubUserProfile;
+        return result;
+      },
+      _user: async (options) => {
+        const { token } = options;
+        const { access_token } = token;
 
-      const result: GitHubUserProfile = { ...userProfile };
+        // Fetch user profile from GitHub API
+        // @see https://docs.github.com/en/rest/users/users#get-the-authenticated-user
+        const userResponse = await fetch(as.userinfo_endpoint!, {
+          headers: {
+            Authorization: `Bearer ${access_token}`,
+            Accept: 'application/vnd.github+json',
+            'X-GitHub-Api-Version': GITHUB_API_VERSION,
+          },
+        });
 
-      // If user:email scope is granted, fetch email addresses
-      // This is necessary because the user profile may not include email
-      // if the user hasn't set a public email
-      if (scopes.includes('user:email')) {
-        try {
-          const emailsResponse = await fetch(
-            'https://api.github.com/user/emails',
+        if (!userResponse.ok) {
+          throw new AuthingyError(
+            'USER_FETCH_FAILED',
+            'Failed to fetch GitHub user profile',
             {
-              headers: {
-                Authorization: `Bearer ${access_token}`,
-                Accept: 'application/vnd.github+json',
-                'X-GitHub-Api-Version': GITHUB_API_VERSION,
-              },
+              status: userResponse.status,
+              statusText: userResponse.statusText,
             }
           );
+        }
 
-          if (emailsResponse.ok) {
-            const emails = (await emailsResponse.json()) as GitHubEmail[];
-            result.emails = emails;
+        const userProfile = (await userResponse.json()) as GitHubUserProfile;
 
-            const primaryEmail = emails.find(
-              (email) => email.primary && email.verified
+        const result: GitHubUserProfile = { ...userProfile };
+
+        // If user:email scope is granted, fetch email addresses
+        // This is necessary because the user profile may not include email
+        // if the user hasn't set a public email
+        if (scopes.includes('user:email')) {
+          try {
+            const emailsResponse = await fetch(
+              'https://api.github.com/user/emails',
+              {
+                headers: {
+                  Authorization: `Bearer ${access_token}`,
+                  Accept: 'application/vnd.github+json',
+                  'X-GitHub-Api-Version': GITHUB_API_VERSION,
+                },
+              }
             );
-            if (primaryEmail) {
-              result.verified_email = primaryEmail.email;
-            }
-          }
-        } catch {}
-      }
 
-      return result;
-    },
-  } satisfies OAuthProvider<GitHubUserProfile>;
-}
+            if (emailsResponse.ok) {
+              const emails = (await emailsResponse.json()) as GitHubEmail[];
+              result.emails = emails;
+
+              const primaryEmail = emails.find(
+                (email) => email.primary && email.verified
+              );
+              if (primaryEmail) {
+                result.verified_email = primaryEmail.email;
+              }
+            }
+          } catch {}
+        }
+
+        return result;
+      },
+    };
+  }
+);

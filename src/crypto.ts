@@ -1,69 +1,70 @@
-import crypto from 'crypto';
+const IV_LENGTH = 12; // 96-bit IV recommended for AES-GCM
+const ALGORITHM = 'AES-GCM';
 
-const ALGORITHM = 'aes-256-gcm';
-const IV_LENGTH = 16; // For AES, IV length is 16 bytes
-const GCM_TAG_LENGTH = 16; // GCM authentication tag length is 16 bytes
+async function deriveKey(secret: string): Promise<CryptoKey> {
+  const keyMaterial = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(secret)
+  );
 
-function keyToBuffer(key: string) {
-  return crypto.createHash('sha256').update(key).digest();
+  return crypto.subtle.importKey('raw', keyMaterial, ALGORITHM, false, [
+    'encrypt',
+    'decrypt',
+  ]);
 }
 
-export function encrypt(key: string, data: Record<string, unknown>) {
-  const keyBuffer = keyToBuffer(key);
-
-  const plainText = JSON.stringify(data);
-  const iv = crypto.randomBytes(IV_LENGTH);
-  const cipher = crypto.createCipheriv(ALGORITHM, keyBuffer, iv);
-
-  let encrypted = cipher.update(plainText, 'utf8', 'hex');
-  encrypted += cipher.final('hex');
-
-  const tag = cipher.getAuthTag();
-
-  return iv.toString('hex') + encrypted + tag.toString('hex');
+function toHex(buffer: ArrayBuffer): string {
+  return Array.from(new Uint8Array(buffer))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
-export function decrypt<T = Record<string, unknown>>(
-  key: string,
+function fromHex(hex: string): Uint8Array {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2) {
+    bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
+  }
+  return bytes;
+}
+
+export async function encrypt(
+  secret: string,
+  data: Record<string, unknown>
+): Promise<string> {
+  const key = await deriveKey(secret);
+  const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
+  const plaintext = new TextEncoder().encode(JSON.stringify(data));
+
+  const ciphertext = await crypto.subtle.encrypt(
+    { name: ALGORITHM, iv },
+    key,
+    plaintext
+  );
+
+  return toHex(iv.buffer) + toHex(ciphertext);
+}
+
+export async function decrypt<T = Record<string, unknown>>(
+  secret: string,
   encryptedText: string
-): T | false {
+): Promise<T | false> {
   try {
-    const minLength = (IV_LENGTH + GCM_TAG_LENGTH) * 2 + 2;
-    if (encryptedText.length < minLength) {
+    const ivHexLength = IV_LENGTH * 2;
+    if (encryptedText.length <= ivHexLength) {
       return false;
     }
 
-    const keyBuffer = keyToBuffer(key);
+    const iv = fromHex(encryptedText.substring(0, ivHexLength));
+    const ciphertext = fromHex(encryptedText.substring(ivHexLength));
 
-    const iv = Buffer.from(encryptedText.substring(0, IV_LENGTH * 2), 'hex');
-    const tag = Buffer.from(
-      encryptedText.substring(encryptedText.length - GCM_TAG_LENGTH * 2),
-      'hex'
-    );
-    const encrypted = Buffer.from(
-      encryptedText.substring(
-        IV_LENGTH * 2,
-        encryptedText.length - GCM_TAG_LENGTH * 2
-      ),
-      'hex'
+    const key = await deriveKey(secret);
+    const plaintext = await crypto.subtle.decrypt(
+      { name: ALGORITHM, iv },
+      key,
+      ciphertext
     );
 
-    if (
-      iv.length !== IV_LENGTH ||
-      tag.length !== GCM_TAG_LENGTH ||
-      encrypted.length === 0
-    ) {
-      return false;
-    }
-
-    const decipher = crypto.createDecipheriv(ALGORITHM, keyBuffer, iv);
-
-    decipher.setAuthTag(tag);
-
-    let decrypted = decipher.update(encrypted);
-    decrypted = Buffer.concat([decrypted, decipher.final()]);
-
-    return JSON.parse(decrypted.toString('utf8'));
+    return JSON.parse(new TextDecoder().decode(plaintext));
   } catch {
     return false;
   }

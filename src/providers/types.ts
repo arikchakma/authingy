@@ -28,6 +28,20 @@ export type OAuthProvider<TUser extends BaseUser = BaseUser> = {
   _user: (options: ProviderUserOptions) => Promise<TUser>;
 };
 
+export function defineProvider<TUser extends BaseUser>(
+  provider: OAuthProvider<TUser>
+): OAuthProvider<TUser>;
+export function defineProvider<TUser extends BaseUser, TConfig>(
+  factory: (config: TConfig) => OAuthProvider<TUser>
+): (config: TConfig) => OAuthProvider<TUser>;
+export function defineProvider<TUser extends BaseUser, TConfig>(
+  providerOrFactory:
+    | OAuthProvider<TUser>
+    | ((config: TConfig) => OAuthProvider<TUser>)
+) {
+  return providerOrFactory;
+}
+
 export type OAuthProviderConfig = {
   clientId: string;
   clientSecret: string;

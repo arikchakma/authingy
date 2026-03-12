@@ -1,9 +1,10 @@
 import * as oauth from 'oauth4webapi';
 
-import type { OAuthProvider, OAuthProviderConfig } from './types';
+import type { OAuthProviderConfig } from './types';
 
 import { AuthingyError } from '../error';
 import { buildAuthorizationUrl, getAuthorizationServer } from '../utils';
+import { defineProvider } from './types';
 
 export type VercelUserProfile = {
   sub: string;
@@ -28,105 +29,106 @@ export type VercelUserProfile = {
  * });
  * ```
  */
-export function vercel(config: OAuthProviderConfig) {
-  const {
-    clientId,
-    clientSecret,
-    redirectUri,
-    scopes: providedScopes,
-  } = config;
+export const vercel = defineProvider<VercelUserProfile, OAuthProviderConfig>(
+  (config) => {
+    const {
+      clientId,
+      clientSecret,
+      redirectUri,
+      scopes: providedScopes,
+    } = config;
 
-  const issuer = new URL('https://vercel.com');
-  const client: oauth.Client = {
-    client_id: clientId,
-  };
-  const clientAuth = oauth.ClientSecretPost(clientSecret);
+    const issuer = new URL('https://vercel.com');
+    const client: oauth.Client = {
+      client_id: clientId,
+    };
+    const clientAuth = oauth.ClientSecretPost(clientSecret);
 
-  const defaultScopes = ['openid', 'email', 'profile'];
-  const scopes = [...defaultScopes, ...(providedScopes ?? [])];
-  let as: oauth.AuthorizationServer | undefined;
+    const defaultScopes = ['openid', 'email', 'profile'];
+    const scopes = [...new Set([...defaultScopes, ...(providedScopes ?? [])])];
+    let as: oauth.AuthorizationServer | undefined;
 
-  const authorizationServer = async () => {
-    if (!as) {
-      as = await getAuthorizationServer(issuer);
-    }
-    return as;
-  };
-
-  return {
-    id: 'vercel',
-    _authorization: async (options) => {
-      const { codeVerifier, state } = options;
-
-      if (!codeVerifier) {
-        throw new AuthingyError(
-          'MISSING_CODE_VERIFIER',
-          'Code verifier is required'
-        );
+    const authorizationServer = async () => {
+      if (!as) {
+        as = await getAuthorizationServer(issuer);
       }
+      return as;
+    };
 
-      const as = await authorizationServer();
+    return {
+      id: 'vercel',
+      _authorization: async (options) => {
+        const { codeVerifier, state } = options;
 
-      if (!as.authorization_endpoint) {
-        throw new AuthingyError(
-          'MISSING_AUTHORIZATION_ENDPOINT',
-          'Authorization endpoint not found'
+        const as = await authorizationServer();
+
+        if (!as.authorization_endpoint) {
+          throw new AuthingyError(
+            'MISSING_AUTHORIZATION_ENDPOINT',
+            'Authorization endpoint not found'
+          );
+        }
+
+        return buildAuthorizationUrl({
+          authorizationEndpoint: as.authorization_endpoint,
+          clientId: client.client_id,
+          redirectUri,
+          scopes,
+          codeVerifier,
+          state,
+        });
+      },
+
+      _callback: async (options) => {
+        const { url, codeVerifier, state } = options;
+        const as = await authorizationServer();
+        const params = oauth.validateAuthResponse(as, client, url, state);
+
+        const response = await oauth.authorizationCodeGrantRequest(
+          as,
+          client,
+          clientAuth,
+          params,
+          redirectUri,
+          codeVerifier
         );
-      }
 
-      return buildAuthorizationUrl({
-        authorizationEndpoint: as.authorization_endpoint,
-        clientId: client.client_id,
-        redirectUri,
-        scopes,
-        codeVerifier,
-        state,
-      });
-    },
+        const result = await oauth.processAuthorizationCodeResponse(
+          as,
+          client,
+          response
+        );
 
-    _callback: async (options) => {
-      const { url, codeVerifier, state } = options;
-      const as = await authorizationServer();
-      const params = oauth.validateAuthResponse(as, client, url, state);
+        return result;
+      },
 
-      const response = await oauth.authorizationCodeGrantRequest(
-        as,
-        client,
-        clientAuth,
-        params,
-        redirectUri,
-        codeVerifier
-      );
+      _user: async (options) => {
+        const { token } = options;
+        const { access_token } = token;
+        const claims = oauth.getValidatedIdTokenClaims(token);
+        if (!claims) {
+          throw new AuthingyError(
+            'USER_FETCH_FAILED',
+            'Missing ID token claims in Vercel token response'
+          );
+        }
+        const { sub } = claims;
+        const as = await authorizationServer();
+        const userResponse = await oauth.userInfoRequest(
+          as,
+          client,
+          access_token
+        );
 
-      const result = await oauth.processAuthorizationCodeResponse(
-        as,
-        client,
-        response
-      );
+        const userResult = await oauth.processUserInfoResponse(
+          as,
+          client,
+          sub,
+          userResponse
+        );
 
-      return result;
-    },
-
-    _user: async (options) => {
-      const { token } = options;
-      const { access_token } = token;
-      const claims = oauth.getValidatedIdTokenClaims(token)!;
-      const { sub } = claims;
-      const as = await authorizationServer();
-      const userResponse = await oauth.userInfoRequest(
-        as,
-        client,
-        access_token
-      );
-
-      const userResult = await oauth.processUserInfoResponse(
-        as,
-        client,
-        sub,
-        userResponse
-      );
-
-      return userResult as VercelUserProfile;
-    },
-  } satisfies OAuthProvider<VercelUserProfile>;
-}
+        return userResult as VercelUserProfile;
+      },
+    };
+  }
+);

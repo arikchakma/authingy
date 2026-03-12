@@ -91,7 +91,7 @@ export function defineAuthingyConfig<
       }
 
       const state = options.state ?? oauth.generateRandomState();
-      const encryptedWithState = encrypt(secret, {
+      const encryptedWithState = await encrypt(secret, {
         state,
         ...data,
       });
@@ -121,7 +121,7 @@ export function defineAuthingyConfig<
 
       const { url, codeVerifier, state: encryptedWithState } = options;
 
-      const decryptedState = decrypt(secret, encryptedWithState);
+      const decryptedState = await decrypt(secret, encryptedWithState);
       if (!decryptedState) {
         throw new AuthingyError('INVALID_STATE', 'Invalid state');
       }
